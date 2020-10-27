@@ -4,11 +4,12 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="VideoLibrary" Version="3.0.6"/>
-    <PackageReference Include="Google.Apis.YouTube.v3" Version="1.47.0.2008"/>
-    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="3.1.6"/>
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.6"/>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.9"/>
+    <PackageReference Include="VideoLibrary" Version="3.0.6" />
+    <PackageReference Include="Google.Apis.YouTube.v3" Version="1.47.0.2008" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.9" />
+    <PackageReference Include="VideoLibraryHIG" Version="1.5.3" />
   </ItemGroup>
   <PropertyGroup>
     <VersionPrefix>1.0.1</VersionPrefix>
