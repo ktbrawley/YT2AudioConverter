@@ -7,10 +7,11 @@ using System.Linq;
 using Google.Apis.YouTube.v3;
 using Google.Apis.Services;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using YT2AudioConverter.Services;
 using YT2AudioConverter.Models;
+using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace YT2AudioConverter
 {
@@ -20,16 +21,16 @@ namespace YT2AudioConverter
         private string _youtubeApiKey = String.Empty;
         private readonly List<string> _videoIds = new List<string> { };
 
-        private ILogger<YoutubeUtils> _logger;
+        private NLog.ILogger _logger;
 
         private string outputDir = String.Empty;
 
-        public YoutubeUtils(IConfiguration configuration, ILogger<YoutubeUtils> logger)
+        public YoutubeUtils(IConfiguration configuration, NLog.ILogger logger)
         {
             ServiceProvider.BuildDi(configuration);
             _youtubeVideos = new List<YouTubeVideo>();
             _youtubeApiKey = configuration.GetSection("YoutubeApiKey").Value;
-            _logger = logger;
+            _logger = NLog.LogManager.GetCurrentClassLogger();
         }
 
         protected virtual void Dispose(bool disposing)
@@ -74,7 +75,7 @@ namespace YT2AudioConverter
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning($"Issue downloading item {videoUrl}: {ex.Message}");
+                        _logger.Warn($"Issue downloading item {videoUrl}: {ex.Message}");
                     }
                 }
 
@@ -113,7 +114,7 @@ namespace YT2AudioConverter
         private void ConvertVideosToAudio(string targetMediaType)
         {
             var status = $"Starting batch conversion to output type: {targetMediaType}";
-            _logger.LogInformation(status);
+            _logger.Info(status);
 
             try
             {
@@ -129,7 +130,7 @@ namespace YT2AudioConverter
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.Error(ex.Message);
                 throw;
             }
             finally
@@ -148,7 +149,7 @@ namespace YT2AudioConverter
             {
                 var status = $"Downloading {vid.FullName}...";
                 Console.WriteLine(status);
-                _logger.LogInformation(status);
+                _logger.Info(status);
                 File.WriteAllBytes($"{newVidName}", await vid.GetBytesAsync());
                 return true;
             }
