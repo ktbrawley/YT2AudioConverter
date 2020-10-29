@@ -1,4 +1,4 @@
-namespace YoutubeConverter.Models
+namespace YT2AudioConverter.Models
 {
     public class ConvertResponse
     {

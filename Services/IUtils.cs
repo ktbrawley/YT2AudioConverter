@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using YoutubeConverter.Models;
+using YT2AudioConverter.Models;
 
 namespace YT2AudioConverter.Services
 {

@@ -7,10 +7,10 @@ using System.Linq;
 using Google.Apis.YouTube.v3;
 using Google.Apis.Services;
 using Microsoft.Extensions.Configuration;
-using YoutubeConverter.Models;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using YT2AudioConverter.Services;
+using YT2AudioConverter.Models;
 
 namespace YT2AudioConverter
 {
@@ -26,6 +26,7 @@ namespace YT2AudioConverter
 
         public YoutubeUtils(IConfiguration configuration, ILogger<YoutubeUtils> logger)
         {
+            ServiceProvider.BuildDi(configuration);
             _youtubeVideos = new List<YouTubeVideo>();
             _youtubeApiKey = configuration.GetSection("YoutubeApiKey").Value;
             _logger = logger;
