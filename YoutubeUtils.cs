@@ -112,17 +112,30 @@ namespace YT2AudioConverter
 
         private void ConvertVideosToAudio(string targetMediaType)
         {
-            switch (targetMediaType)
-            {
-                case "mp3":
-                    AudioConvertor.ConvertBatchToMp3(this.outputDir);
-                    break;
-                case "wav":
-                    AudioConvertor.ConvertBatchToWav(this.outputDir);
-                    break;
-            }
+            var status = $"Starting batch conversion to output type: {targetMediaType}";
+            _logger.LogInformation(status);
 
-            AudioConvertor.RemoveVideoFiles(this.outputDir);
+            try
+            {
+                switch (targetMediaType)
+                {
+                    case "mp3":
+                        AudioConvertor.ConvertBatchToMp3(this.outputDir);
+                        break;
+                    case "wav":
+                        AudioConvertor.ConvertBatchToWav(this.outputDir);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+            finally
+            {
+                AudioConvertor.RemoveVideoFiles(this.outputDir);
+            }
         }
 
         private async Task<bool> RetrieveVideoFile(string videoUrl, Client<YouTubeVideo> youtube, string mediaType)
@@ -133,7 +146,9 @@ namespace YT2AudioConverter
 
             if (!File.Exists(newVidName) && !File.Exists(newVidName.Replace(".mp4", $"{mediaType}")))
             {
-                Console.WriteLine($"Downloading {vid.FullName}...");
+                var status = $"Downloading {vid.FullName}...";
+                Console.WriteLine(status);
+                _logger.LogInformation(status);
                 File.WriteAllBytes($"{newVidName}", await vid.GetBytesAsync());
                 return true;
             }
