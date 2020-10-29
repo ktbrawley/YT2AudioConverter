@@ -25,7 +25,7 @@ namespace YT2AudioConverter
 
         private string outputDir = String.Empty;
 
-        public YoutubeUtils(IConfiguration configuration, NLog.ILogger logger)
+        public YoutubeUtils(IConfiguration configuration)
         {
             ServiceProvider.BuildDi(configuration);
             _youtubeVideos = new List<YouTubeVideo>();
