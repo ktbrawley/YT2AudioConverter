@@ -90,25 +90,40 @@ namespace YT2AudioConverter
 
         private async Task ExtractYoutubeVideoInfoFromPlaylist(string playlistId)
         {
-            var youtubeService = new YouTubeService(new BaseClientService.Initializer()
+
+            try
             {
-                ApiKey = _youtubeApiKey,
-                ApplicationName = "SaveRoomCP"
-            });
 
-            var playlistRequest = youtubeService.PlaylistItems.List("snippet");
-            playlistRequest.PlaylistId = playlistId;
-            playlistRequest.MaxResults = 20;
 
-            // Retrieve the list of videos uploaded to the authenticated user's channel.
-            var playlistItemsListResponse = await playlistRequest.ExecuteAsync();
+                var youtubeService = new YouTubeService(new BaseClientService.Initializer()
+                {
+                    ApiKey = _youtubeApiKey,
+                    ApplicationName = "SaveRoomCP"
+                });
 
-            foreach (var playlistItem in playlistItemsListResponse.Items)
-            {
-                // Print information about each video.
-                // Console.WriteLine("{0} ({1})", playlistItem.Snippet.Title, playlistItem.Snippet.ResourceId.VideoId);
-                _videoIds.Add(playlistItem.Snippet.ResourceId.VideoId);
+                var playlistRequest = youtubeService.PlaylistItems.List("snippet");
+                playlistRequest.PlaylistId = playlistId;
+                playlistRequest.MaxResults = 20;
+
+                _logger.Info($"Attempting to acquire video information from playlist url");
+
+                // Retrieve the list of videos uploaded to the authenticated user's channel.
+                var playlistItemsListResponse = await playlistRequest.ExecuteAsync();
+
+                foreach (var playlistItem in playlistItemsListResponse.Items)
+                {
+                    // Print information about each video.
+                    // Console.WriteLine("{0} ({1})", playlistItem.Snippet.Title, playlistItem.Snippet.ResourceId.VideoId);
+                    _videoIds.Add(playlistItem.Snippet.ResourceId.VideoId);
+                }
+
+                _logger.Info($"Playlist consists of {_videoIds.Count()} songs");
             }
+            catch (Exception ex)
+            {
+                _logger.Error($"Playlist processing error: {ex}");
+            }
+
         }
 
         private void ConvertVideosToAudio(string targetMediaType)
@@ -127,6 +142,7 @@ namespace YT2AudioConverter
                         AudioConvertor.ConvertBatchToWav(this.outputDir);
                         break;
                 }
+
             }
             catch (Exception ex)
             {
@@ -135,7 +151,10 @@ namespace YT2AudioConverter
             }
             finally
             {
+                _logger.Info($"Batch conversion completed successfully");
+                _logger.Info($"Cleaning up temp video files");
                 AudioConvertor.RemoveVideoFiles(this.outputDir);
+                _logger.Info($"Video files removed");
             }
         }
 
