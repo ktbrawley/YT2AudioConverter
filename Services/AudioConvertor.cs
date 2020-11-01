@@ -9,8 +9,12 @@ namespace YT2AudioConverter.Services
 {
     public static class AudioConvertor
     {
+
         public static void ConvertToWav(string sourceFilePath, string outputDirPath)
         {
+            var logger = NLog.LogManager.GetCurrentClassLogger();
+            logger.Info($"Converting audio to path: {outputDirPath}");
+            
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -29,6 +33,9 @@ namespace YT2AudioConverter.Services
 
         public static void ConvertBatchToWav(string outputDirPath)
         {
+            var logger = NLog.LogManager.GetCurrentClassLogger();
+            logger.Info($"Converting audio to path: {outputDirPath}");
+
             var cmd = $"cd {outputDirPath} && for file in *.mp4; do ffmpeg -i ${{file}} ${{file/%mp4/wav}}; done";
             var espacedArgs = cmd.Replace("\"", "\\\"");
 
