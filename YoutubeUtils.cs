@@ -43,9 +43,8 @@ namespace YT2AudioConverter
             GC.SuppressFinalize(this);
         }
 
-        public async Task<ConvertResponse> SaveVideosAsAudio(YoutubeToFileRequest request, string outputDir)
+        public async Task<ConvertResponse> SaveVideosAsFiles(YoutubeToFileRequest request, string outputDir)
         {
-
             var requestId = request.Uri.Split('=')[1];
             this.outputDir = outputDir;
 
@@ -58,11 +57,9 @@ namespace YT2AudioConverter
                 _videoIds.Add(requestId);
             }
 
-
             var videosConverted = 0;
             using (var service = Client.For(YouTube.Default))
             {
-
                 foreach (var id in _videoIds)
                 {
                     var videoUrl = FormatVideoUri(id);
@@ -71,7 +68,6 @@ namespace YT2AudioConverter
                         var resultSuccess = await RetrieveVideoFile(videoUrl, service, request.TargetMediaType);
                         if (resultSuccess)
                             videosConverted++;
-
                     }
                     catch (Exception ex)
                     {
@@ -81,8 +77,7 @@ namespace YT2AudioConverter
 
                 if (videosConverted > 0)
                 {
-                    ConvertVideosToAudio(request.TargetMediaType);
-
+                    ConvertVideosToFile(request.TargetMediaType);
                 }
                 return GenerateResponse(videosConverted);
             }
@@ -90,11 +85,8 @@ namespace YT2AudioConverter
 
         private async Task ExtractYoutubeVideoInfoFromPlaylist(string playlistId)
         {
-
             try
             {
-
-
                 var youtubeService = new YouTubeService(new BaseClientService.Initializer()
                 {
                     ApiKey = _youtubeApiKey,
@@ -123,10 +115,9 @@ namespace YT2AudioConverter
             {
                 _logger.Error($"Playlist processing error: {ex}");
             }
-
         }
 
-        private void ConvertVideosToAudio(string targetMediaType)
+        private void ConvertVideosToFile(string targetMediaType)
         {
             var status = $"Starting batch conversion to output type: {targetMediaType}";
             _logger.Info(status);
@@ -136,13 +127,17 @@ namespace YT2AudioConverter
                 switch (targetMediaType)
                 {
                     case "mp3":
-                        AudioConvertor.ConvertBatchToMp3(this.outputDir);
+                        FileConverter.ConvertBatchToMp3(this.outputDir);
                         break;
+
                     case "wav":
-                        AudioConvertor.ConvertBatchToWav(this.outputDir);
+                        FileConverter.ConvertBatchToWav(this.outputDir);
+                        break;
+
+                    case "mp4":
+                        Console.WriteLine("Video file has been downloaded");
                         break;
                 }
-
             }
             catch (Exception ex)
             {
@@ -151,10 +146,13 @@ namespace YT2AudioConverter
             }
             finally
             {
-                _logger.Info($"Batch conversion completed successfully");
+                _logger.Info($"Batch conversion completed successful ly");
                 _logger.Info($"Cleaning up temp video files");
-                AudioConvertor.RemoveVideoFiles(this.outputDir);
-                _logger.Info($"Video files removed");
+                if (targetMediaType != "mp4")
+                {
+                    FileConverter.RemoveVideoFiles(this.outputDir);
+                    _logger.Info($"Video files removed");
+                }
             }
         }
 
@@ -199,7 +197,6 @@ namespace YT2AudioConverter
 
             if (videosConverted > 0)
             {
-
                 newResponse.Message = $"Converted {videosConverted} files successfully.";
                 newResponse.Succeeded = true;
             }
