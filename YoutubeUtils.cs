@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using VideoLibrary;
 using System.Collections.Generic;
 using System.Linq;
 using Google.Apis.YouTube.v3;
@@ -21,7 +20,6 @@ namespace YT2AudioConverter
 {
     public class YoutubeUtils : IUtils, IDisposable
     {
-        private List<YouTubeVideo> _youtubeVideos;
         private string _youtubeApiKey = String.Empty;
         private readonly List<string> _videoIds = new List<string> { };
 
@@ -32,7 +30,6 @@ namespace YT2AudioConverter
         public YoutubeUtils(IConfiguration configuration)
         {
             ServiceProvider.BuildDi(configuration);
-            _youtubeVideos = new List<YouTubeVideo>();
             _youtubeApiKey = configuration.GetSection("YoutubeApiKey").Value;
             _logger = NLog.LogManager.GetCurrentClassLogger();
         }
