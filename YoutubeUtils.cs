@@ -164,7 +164,8 @@ namespace YT2AudioConverter
         private async Task<bool> RetrieveVideoFile(string videoUrl, YoutubeClient youtube, string mediaType)
         {
             var metaData = await youtube.Videos.GetAsync(videoUrl);
-            var newVidName = $"{FILE_BASE_PATH}\\{FormatFileName(metaData.Title)}";
+            var newVidName = FormatFileName(metaData.Title);
+            var newVidPath = $"{FILE_BASE_PATH}\\{newVidName}";
 
             var streamManifest = await youtube.Videos.Streams.GetManifestAsync(metaData.Id);
 
@@ -173,7 +174,7 @@ namespace YT2AudioConverter
                 Directory.CreateDirectory(FILE_BASE_PATH);
             }
 
-            if (!File.Exists(newVidName) && !File.Exists(newVidName.Replace(".mp4", $"{mediaType}")))
+            if (!File.Exists(newVidPath) && !File.Exists(newVidPath.Replace(".mp4", $"{mediaType}")))
             {
                 var status = $"Downloading {metaData.Title}...";
                 Console.WriteLine(status);
@@ -192,9 +193,8 @@ namespace YT2AudioConverter
 
                 if (streamInfos != null)
                 {
-                    // Download the stream to file
                     // Download and process them into one file
-                    await youtube.Videos.DownloadAsync(streamInfos, new ConversionRequestBuilder($"{metaData.Title}.mp4").Build());
+                    await youtube.Videos.DownloadAsync(streamInfos, new ConversionRequestBuilder($"{FILE_BASE_PATH}\\{newVidName}.mp4").Build());
                     return true;
                 }
             }
@@ -210,7 +210,8 @@ namespace YT2AudioConverter
                 .Replace("(", "")
                 .Replace("`", "")
                 .Replace("'", "")
-                .Replace(")", "");
+                .Replace(")", "")
+                .Replace("/", "_");
         }
 
         private string FormatVideoUri(string id)
