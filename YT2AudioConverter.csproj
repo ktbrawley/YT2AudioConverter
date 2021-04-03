@@ -4,17 +4,18 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <PropertyGroup>
-    <VersionPrefix>1.4.0</VersionPrefix>
+    <VersionPrefix>2.0.0</VersionPrefix>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.47.0.2008"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="3.1.6"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.6"/>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.9"/>
-    <PackageReference Include="VideoLibrary" Version="3.1.0"/>
     <PackageReference Include="NLog.Extensions.Logging" Version="1.6.5"/>
     <PackageReference Include="NLog" Version="4.7.5"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.9"/>
+    <PackageReference Include="YoutubeExplode" Version="6.0.0-alpha2"/>
+    <PackageReference Include="YoutubeExplode.Converter" Version="2.0.2"/>
   </ItemGroup>
   <ItemGroup>
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest"/>
