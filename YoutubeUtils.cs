@@ -291,7 +291,7 @@ namespace YT2AudioConverter
 
         private string FormatVideoUri(string id)
         {
-            var videoUrl = $"https://www._youtube.com/watch?v=id";
+            var videoUrl = $"https://www.youtube.com/watch?v=id";
             return videoUrl.Replace("id", id);
         }
 
