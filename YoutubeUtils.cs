@@ -29,7 +29,6 @@ namespace YT2AudioConverter
         public YoutubeUtils(IConfiguration configuration)
         {
             ServiceProvider.BuildDi(configuration);
-            _youtubeApiKey = configuration.GetSection("YoutubeApiKey").Value;
             _logger = NLog.LogManager.GetCurrentClassLogger();
             _youtube = new YoutubeClient();
         }
