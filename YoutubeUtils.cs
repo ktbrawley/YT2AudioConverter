@@ -49,7 +49,7 @@ namespace YT2AudioConverter
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        public async Task<ConvertResponse> SaveToFileType(YoutubeToFileRequest request)
+        public async Task<ConvertResponse> ConvertYoutubeUriToFile(YoutubeToFileRequest request)
         {
             var videosConverted = 0;
             var requestId = ExtractRequestId(request.IsPlaylist, request.Uri);
