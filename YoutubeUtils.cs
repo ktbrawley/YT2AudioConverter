@@ -12,6 +12,7 @@ using YoutubeExplode.Converter;
 using System.Reflection;
 using YoutubeExplode.Videos;
 using YoutubeExplode.Playlists;
+using YoutubeExplode.Common;
 
 namespace YT2AudioConverter
 {
@@ -42,7 +43,6 @@ namespace YT2AudioConverter
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
 
         /// <summary>
         /// Save youtube video to specified file format
@@ -89,6 +89,7 @@ namespace YT2AudioConverter
             }
             return requestId;
         }
+
         private string ExtractPlaylistIdFromRequestUri(string uri)
         {
             var id = uri.Split(new string[] { "list=" }, StringSplitOptions.None)[1];
@@ -138,6 +139,7 @@ namespace YT2AudioConverter
 
             return response;
         }
+
         private async Task<bool> RetrieveFile(string videoUrl, string mediaType)
         {
             var metaData = await _youtube.Videos.GetAsync(videoUrl);
@@ -192,15 +194,15 @@ namespace YT2AudioConverter
             IVideoStreamInfo videoStreamInfo = null;
 
             var audioStreamInfo = streamManifest
-                .GetAudio()
-                .WithHighestBitrate();
+                .GetAudioOnlyStreams()
+                .GetWithHighestBitrate();
 
             if (mediaType.Contains("mp4"))
             {
                 videoStreamInfo = streamManifest
-                   .GetVideo()
+                   .GetVideoOnlyStreams()
                    .Where(s => s.Container == Container.Mp4)
-                   .WithHighestVideoQuality();
+                   .GetWithHighestVideoQuality();
             }
 
             var streamInfos = new IStreamInfo[] { audioStreamInfo };
