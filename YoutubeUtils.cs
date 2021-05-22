@@ -43,62 +43,34 @@ namespace YT2AudioConverter
             GC.SuppressFinalize(this);
         }
 
+
         /// <summary>
         /// Save youtube video to specified file format
         /// </summary>
         /// <param name="request"></param>
-        /// <param name="filePathOverride">Override the default file output path</param>
         /// <returns></returns>
-        public async Task<ConvertResponse> SaveVideosAsFiles(YoutubeToFileRequest request)
+        public async Task<ConvertResponse> SaveToFileType(YoutubeToFileRequest request)
         {
             var videosConverted = 0;
             var requestId = ExtractRequestId(request.IsPlaylist, request.Uri);
-
-            if (request.IsPlaylist)
-            {
-                try
-                {
-                    var response = await DownloadVideosFromPlaylist(requestId);
-                    videosConverted = response.VideoConverted;
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error($"Playlist processing error: {ex}");
-                }
-            }
-            else
-            {
-                _videoIds.Add(requestId);
-
-                foreach (var id in _videoIds)
-                {
-                    var videoUrl = FormatVideoUri(id);
-
-                    try
-                    {
-                        var resultSuccess = await RetrieveVideoFile(videoUrl, request.TargetMediaType);
-                        if (resultSuccess)
-                            videosConverted++;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Warn($"Issue downloading item {videoUrl}: {ex.Message}");
-                    }
-                }
-            }
-
             try
             {
-                if (videosConverted > 0)
+                if (request.IsPlaylist)
                 {
-                    ConvertVideosToFile(request.TargetMediaType);
+                    var response = await DownloadFilesFromPlaylist(request.Uri, request.TargetMediaType);
+                    videosConverted = response.VideoConverted;
+                }
+                else
+                {
+                    var resultSuccess = await RetrieveFile(request.Uri, request.TargetMediaType);
+                    if (resultSuccess)
+                        videosConverted++;
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error converting video files: {ex.Message}");
+                _logger.Error($"Playlist processing error: {ex}");
             }
-
             return GenerateResponse(videosConverted);
         }
 
@@ -135,7 +107,7 @@ namespace YT2AudioConverter
             return id;
         }
 
-        private async Task<DownloadPlaylistResponse> DownloadVideosFromPlaylist(string playlistId)
+        private async Task<DownloadPlaylistResponse> DownloadFilesFromPlaylist(string playlistId, string mediaType)
         {
             var playlist = await _youtube.Playlists.GetAsync(playlistId);
             var successed = false;
@@ -156,9 +128,7 @@ namespace YT2AudioConverter
 
             foreach (var vid in playlistVideos)
             {
-                var newVidName = FormatFileName(vid.Title);
-                var newVidPath = $"{FILE_BASE_PATH}\\{newVidName}";
-                await DownloadVideo(vid, newVidName);
+                await RetrieveFile(vid.Url, mediaType);
                 videosConverted++;
             }
             successed = true;
@@ -168,60 +138,20 @@ namespace YT2AudioConverter
 
             return response;
         }
-
-        private void ConvertVideosToFile(string targetMediaType)
-        {
-            var status = $"Starting batch conversion to output type: {targetMediaType}";
-            _logger.Info(status);
-
-            try
-            {
-                switch (targetMediaType)
-                {
-                    case "mp3":
-                        FileConverter.ConvertBatchToMp3(FILE_BASE_PATH);
-                        break;
-
-                    case "wav":
-                        FileConverter.ConvertBatchToWav(FILE_BASE_PATH);
-                        break;
-
-                    case "mp4":
-                        Console.WriteLine("Video file has been downloaded");
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex.Message);
-                throw;
-            }
-            finally
-            {
-                _logger.Info($"Batch conversion completed successful ly");
-                _logger.Info($"Cleaning up temp video files");
-                if (targetMediaType != "mp4")
-                {
-                    FileConverter.RemoveVideoFiles(FILE_BASE_PATH);
-                    _logger.Info($"Video files removed");
-                }
-            }
-        }
-
-        private async Task<bool> RetrieveVideoFile(string videoUrl, string mediaType)
+        private async Task<bool> RetrieveFile(string videoUrl, string mediaType)
         {
             var metaData = await _youtube.Videos.GetAsync(videoUrl);
-            var newVidName = FormatFileName(metaData.Title);
-            var newVidPath = $"{FILE_BASE_PATH}\\{newVidName}";
+            var newFileName = FormatFileName(metaData.Title);
+            var newFilePath = $"{FILE_BASE_PATH}\\{newFileName}.mp4";
 
             if (!Directory.Exists(FILE_BASE_PATH))
             {
                 Directory.CreateDirectory(FILE_BASE_PATH);
             }
 
-            if (!File.Exists(newVidPath) && !File.Exists(newVidPath.Replace(".mp4", $"{mediaType}")))
+            if (!File.Exists(newFilePath) && !File.Exists(newFilePath.Replace(".mp4", $"{mediaType}")))
             {
-                await DownloadVideo(metaData, newVidName);
+                await DownloadFile(metaData, newFileName, mediaType);
                 return true;
             }
             return false;
@@ -237,41 +167,52 @@ namespace YT2AudioConverter
                 Console.WriteLine(status);
                 _logger.Info(status);
 
-                await GetVideoFromStreamManifest(streamManifest, newVidName);
+                await GetFileFromStreamManifest(streamManifest, newVidName, "mp4");
             }
         }
 
-        private async Task DownloadVideo(Video metaData, string newVidName)
+        private async Task DownloadFile(Video metaData, string newFileName, string mediaType)
         {
             var streamManifest = await _youtube.Videos.Streams.GetManifestAsync(metaData.Id);
 
             if (streamManifest != null)
             {
-                var status = $"Downloading {metaData.Title}...";
+                var status = $"Downloading {metaData.Title} as {mediaType}";
                 Console.WriteLine(status);
                 _logger.Info(status);
 
-                await GetVideoFromStreamManifest(streamManifest, newVidName);
+                await GetFileFromStreamManifest(streamManifest, newFileName, mediaType);
+                Console.WriteLine($"{newFileName} has been downloaded");
             }
         }
 
-        private async Task GetVideoFromStreamManifest(StreamManifest streamManifest, string newVidName)
+        private async Task GetFileFromStreamManifest(StreamManifest streamManifest, string newVidName, string mediaType)
         {
             // Select streams (highest video quality / highest bitrate audio)
+            IVideoStreamInfo videoStreamInfo = null;
+
             var audioStreamInfo = streamManifest
                 .GetAudio()
                 .WithHighestBitrate();
-            var videoStreamInfo = streamManifest
-                .GetVideo()
-                .Where(s => s.Container == Container.Mp4)
-                .WithHighestVideoQuality();
 
-            var streamInfos = new IStreamInfo[] { audioStreamInfo, videoStreamInfo };
+            if (mediaType.Contains("mp4"))
+            {
+                videoStreamInfo = streamManifest
+                   .GetVideo()
+                   .Where(s => s.Container == Container.Mp4)
+                   .WithHighestVideoQuality();
+            }
+
+            var streamInfos = new IStreamInfo[] { audioStreamInfo };
+            if (videoStreamInfo != null)
+            {
+                streamInfos = streamInfos.Concat(new IStreamInfo[] { videoStreamInfo }).ToArray();
+            }
 
             if (streamInfos != null)
             {
                 // Download and process them into one file
-                await _youtube.Videos.DownloadAsync(streamInfos, new ConversionRequestBuilder($"{FILE_BASE_PATH}\\{newVidName}.mp4").Build());
+                await _youtube.Videos.DownloadAsync(streamInfos, new ConversionRequestBuilder($"{FILE_BASE_PATH}\\{newVidName}.{mediaType}").Build());
             }
         }
 

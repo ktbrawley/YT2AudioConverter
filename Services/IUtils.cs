@@ -6,6 +6,6 @@ namespace YT2AudioConverter.Services
 {
     public interface IUtils
     {
-        Task<ConvertResponse> SaveVideosAsFiles(YoutubeToFileRequest request);
+        Task<ConvertResponse> SaveToFileType(YoutubeToFileRequest request);
     }
 }
