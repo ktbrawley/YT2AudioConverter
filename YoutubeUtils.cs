@@ -62,8 +62,8 @@ namespace YT2AudioConverter
                 }
                 else
                 {
-                    var resultSuccess = await RetrieveFile(request.Uri, request.TargetMediaType);
-                    if (resultSuccess)
+                    var result = await RetrieveFile(request.Uri, request.TargetMediaType);
+                    if (result.Succeeded)
                         videosConverted++;
                 }
             }
@@ -111,12 +111,12 @@ namespace YT2AudioConverter
         private async Task<DownloadPlaylistResponse> DownloadFilesFromPlaylist(string playlistId, string mediaType)
         {
             var playlist = await _youtube.Playlists.GetAsync(playlistId);
-            var successed = false;
             var videosConverted = 0;
+
             DownloadPlaylistResponse response = new DownloadPlaylistResponse()
             {
                 VideoConverted = videosConverted,
-                Successed = successed
+                Successed = false
             };
 
             // Get all playlist videos
@@ -129,34 +129,48 @@ namespace YT2AudioConverter
 
             foreach (var vid in playlistVideos)
             {
-                await RetrieveFile(vid.Url, mediaType);
-                videosConverted++;
+                var fileRetrival = await RetrieveFile(vid.Url, mediaType);
+                if (fileRetrival.Succeeded)
+                    videosConverted++;
             }
-            successed = true;
 
-            response.Successed = successed;
+            response.Successed = true;
             response.VideoConverted = videosConverted;
 
             return response;
         }
 
-        private async Task<bool> RetrieveFile(string videoUrl, string mediaType)
+        private async Task<ConvertResponse> RetrieveFile(string videoUrl, string mediaType)
         {
             var metaData = await _youtube.Videos.GetAsync(videoUrl);
             var newFileName = FormatFileName(metaData.Title);
-            var newFilePath = $"{FILE_BASE_PATH}\\{newFileName}.mp4";
+            var newFilePath = $"{FILE_BASE_PATH}\\{newFileName}.{mediaType}";
+
+            ConvertResponse response = new ConvertResponse()
+            {
+                Succeeded = false,
+                Error = string.Empty,
+                Message = string.Empty
+            };
 
             if (!Directory.Exists(FILE_BASE_PATH))
             {
                 Directory.CreateDirectory(FILE_BASE_PATH);
             }
 
-            if (!File.Exists(newFilePath) && !File.Exists(newFilePath.Replace(".mp4", $"{mediaType}")))
+            if (File.Exists(newFilePath))
             {
-                await DownloadFile(metaData, newFileName, mediaType);
-                return true;
+                var message = $"Download bypassed: {newFileName}.{mediaType} already exists.";
+
+                _logger.Warn(message);
+                response.Message = message;
+
+                return response;
             }
-            return false;
+
+            await DownloadFile(metaData, newFileName, mediaType);
+            response.Succeeded = true;
+            return response;
         }
 
         private async Task DownloadVideo(PlaylistVideo metaData, string newVidName)
