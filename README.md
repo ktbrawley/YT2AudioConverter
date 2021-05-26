@@ -1,7 +1,14 @@
-## INSTRUCTIONS
+### Overview
+A class library which assists in the conversion of Youtube Videos to specific file format.
 
-In order to publish a new version of the class lib to nuget, the following command must be executed:
+Built using [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode). Check it out!
 
-```dotnet nuget push ./bin/Debug/YT2AudioConverter.<VERSION_NUMBER>.nupkg --api-key ygtf3uvbllttihbjzypfys7t3j6ejypg7ta4lg4m3vexau5bjx2a --source "BrawlNuget" --interactive```
+### Usage
+Single method that takes on a request object
+```
+ConvertYoutubeUriToFile(YoutubeToFileRequest request)
+```
 
-Subsitute <VERSION_NUMBER> with the appropriate revision (e.g. 1.0.0)
+Request object is comprised of three properties:
+1. URI of the Youtube video/playlist
+1. Target Media Type you'd like to convert the video to (e.g. wav, mp3, mp4)

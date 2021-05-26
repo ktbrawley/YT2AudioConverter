@@ -52,15 +52,23 @@ namespace YT2AudioConverter
         public async Task<ConvertResponse> ConvertYoutubeUriToFile(YoutubeToFileRequest request)
         {
             var videosConverted = 0;
-            var requestId = ExtractRequestId(request.IsPlaylist, request.Uri);
             try
             {
+                if (!ValidateRequestParams(request))
+                {
+                    _logger.Error($"Bad Request - model is invalid");
+                    return GenerateResponse(videosConverted);
+                }
+
+                var isPlaylist = request.Uri.Contains("list");
+                var requestId = ExtractRequestId(isPlaylist, request.Uri);
+
                 if (!Directory.Exists(FILE_BASE_PATH))
                 {
                     Directory.CreateDirectory(FILE_BASE_PATH);
                 }
 
-                if (request.IsPlaylist)
+                if (isPlaylist)
                 {
                     var response = await DownloadFilesFromPlaylist(request.Uri, request.TargetMediaType);
                     videosConverted = response.VideoConverted;
@@ -74,9 +82,16 @@ namespace YT2AudioConverter
             }
             catch (Exception ex)
             {
-                _logger.Error($"Playlist processing error: {ex}");
+                _logger.Error($"Error processing request: {ex}");
             }
             return GenerateResponse(videosConverted);
+        }
+
+        private bool ValidateRequestParams(YoutubeToFileRequest request)
+        {
+            return request != null
+            && !string.IsNullOrEmpty(request.TargetMediaType)
+            && !string.IsNullOrEmpty(request.Uri);
         }
 
         private string ExtractRequestId(bool isPlaylist, string url)
