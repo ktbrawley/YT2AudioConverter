@@ -55,6 +55,11 @@ namespace YT2AudioConverter
             var requestId = ExtractRequestId(request.IsPlaylist, request.Uri);
             try
             {
+                if (!Directory.Exists(FILE_BASE_PATH))
+                {
+                    Directory.CreateDirectory(FILE_BASE_PATH);
+                }
+
                 if (request.IsPlaylist)
                 {
                     var response = await DownloadFilesFromPlaylist(request.Uri, request.TargetMediaType);
@@ -127,9 +132,16 @@ namespace YT2AudioConverter
                 return response;
             }
 
+            // Make directory to house playlist files
+            var playlistOutputDir = $"{FILE_BASE_PATH}\\{FormatFileName(playlist.Title)}";
+            if (!Directory.Exists(playlistOutputDir))
+            {
+                Directory.CreateDirectory(playlistOutputDir);
+            }
+
             foreach (var vid in playlistVideos)
             {
-                var fileRetrival = await RetrieveFile(vid.Url, mediaType);
+                var fileRetrival = await RetrieveFile(vid.Url, mediaType, playlistOutputDir);
                 if (fileRetrival.Succeeded)
                     videosConverted++;
             }
@@ -140,11 +152,12 @@ namespace YT2AudioConverter
             return response;
         }
 
-        private async Task<ConvertResponse> RetrieveFile(string videoUrl, string mediaType)
+        private async Task<ConvertResponse> RetrieveFile(string videoUrl, string mediaType, string outputDir = null)
         {
+            outputDir = string.IsNullOrEmpty(outputDir) ? FILE_BASE_PATH : outputDir;
             var metaData = await _youtube.Videos.GetAsync(videoUrl);
             var newFileName = FormatFileName(metaData.Title);
-            var newFilePath = $"{FILE_BASE_PATH}\\{newFileName}.{mediaType}";
+            var newFilePath = $"{outputDir}\\{newFileName}.{mediaType}";
 
             ConvertResponse response = new ConvertResponse()
             {
@@ -152,11 +165,6 @@ namespace YT2AudioConverter
                 Error = string.Empty,
                 Message = string.Empty
             };
-
-            if (!Directory.Exists(FILE_BASE_PATH))
-            {
-                Directory.CreateDirectory(FILE_BASE_PATH);
-            }
 
             if (File.Exists(newFilePath))
             {
@@ -168,26 +176,12 @@ namespace YT2AudioConverter
                 return response;
             }
 
-            await DownloadFile(metaData, newFileName, mediaType);
+            await DownloadFile(metaData, newFileName, mediaType, outputDir);
             response.Succeeded = true;
             return response;
         }
 
-        private async Task DownloadVideo(PlaylistVideo metaData, string newVidName)
-        {
-            var streamManifest = await _youtube.Videos.Streams.GetManifestAsync(metaData.Id);
-
-            if (streamManifest != null)
-            {
-                var status = $"Downloading {metaData.Title}...";
-                Console.WriteLine(status);
-                _logger.Info(status);
-
-                await GetFileFromStreamManifest(streamManifest, newVidName, "mp4");
-            }
-        }
-
-        private async Task DownloadFile(Video metaData, string newFileName, string mediaType)
+        private async Task DownloadFile(Video metaData, string newFileName, string mediaType, string outputDir)
         {
             var streamManifest = await _youtube.Videos.Streams.GetManifestAsync(metaData.Id);
 
@@ -197,12 +191,12 @@ namespace YT2AudioConverter
                 Console.WriteLine(status);
                 _logger.Info(status);
 
-                await GetFileFromStreamManifest(streamManifest, newFileName, mediaType);
+                await GetFileFromStreamManifest(streamManifest, newFileName, mediaType, outputDir);
                 Console.WriteLine($"{newFileName} has been downloaded");
             }
         }
 
-        private async Task GetFileFromStreamManifest(StreamManifest streamManifest, string newVidName, string mediaType)
+        private async Task GetFileFromStreamManifest(StreamManifest streamManifest, string newVidName, string mediaType, string outputDir)
         {
             // Select streams (highest video quality / highest bitrate audio)
             IVideoStreamInfo videoStreamInfo = null;
@@ -228,22 +222,16 @@ namespace YT2AudioConverter
             if (streamInfos != null)
             {
                 // Download and process them into one file
-                await _youtube.Videos.DownloadAsync(streamInfos, new ConversionRequestBuilder($"{FILE_BASE_PATH}\\{newVidName}.{mediaType}").Build());
+                await _youtube.Videos.DownloadAsync(streamInfos, new ConversionRequestBuilder($"{outputDir}\\{newVidName}.{mediaType}").Build());
             }
         }
 
-        private string FormatFileName(string fileName)
+        private static string FormatFileName(string name)
         {
-            return fileName
-                .Replace(" ", "_")
-                .Replace(":", "")
-                .Replace("\"", "")
-                .Replace("(", "")
-                .Replace("`", "")
-                .Replace("'", "")
-                .Replace(")", "")
-                .Replace("|", "_")
-                .Replace("/", "_");
+            string invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidFileNameChars()));
+            string invalidRegStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
+
+            return System.Text.RegularExpressions.Regex.Replace(name, invalidRegStr, "_");
         }
 
         private string FormatVideoUri(string id)
