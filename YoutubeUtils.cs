@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using YT2AudioConverter.Services;
@@ -11,16 +10,12 @@ using YoutubeExplode.Videos.Streams;
 using YoutubeExplode.Converter;
 using System.Reflection;
 using YoutubeExplode.Videos;
-using YoutubeExplode.Playlists;
 using YoutubeExplode.Common;
 
 namespace YT2AudioConverter
 {
     public class YoutubeUtils : IUtils, IDisposable
     {
-        private string _youtubeApiKey = String.Empty;
-        private readonly List<string> _videoIds = new List<string> { };
-
         private readonly string FILE_BASE_PATH = $"{new DirectoryInfo(Assembly.GetExecutingAssembly().Location).Parent.FullName}\\Files";
 
         private NLog.ILogger _logger;
@@ -154,12 +149,9 @@ namespace YT2AudioConverter
                 Directory.CreateDirectory(playlistOutputDir);
             }
 
-            foreach (var vid in playlistVideos)
-            {
-                var fileRetrival = await RetrieveFile(vid.Url, mediaType, playlistOutputDir);
-                if (fileRetrival.Succeeded)
-                    videosConverted++;
-            }
+            playlistVideos.AsParallel()
+                   .Select(video => RetrieveFile(video.Url, mediaType, playlistOutputDir).Result)
+                   .ForAll(result => { if (result.Succeeded) videosConverted++; });
 
             response.Successed = true;
             response.VideoConverted = videosConverted;
